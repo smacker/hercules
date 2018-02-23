@@ -29,6 +29,39 @@ type RBTree struct {
 	count int
 }
 
+func (root *RBTree) Copy() *RBTree {
+	minItem := root.minNode.item
+	maxItem := root.maxNode.item
+
+	treeCopy := &RBTree{
+		root:  root.root.copy(),
+		count: root.count,
+	}
+
+	nodes := []*node{treeCopy.root}
+	for len(nodes) > 0 {
+		n := nodes[0]
+		nodes = nodes[1:]
+		if n.item == minItem {
+			treeCopy.minNode = n
+		}
+		if n.item == maxItem {
+			treeCopy.maxNode = n
+		}
+		if treeCopy.minNode != nil && treeCopy.maxNode != nil {
+			break
+		}
+		if n.left != nil {
+			nodes = append(nodes, n.left)
+		}
+		if n.right != nil {
+			nodes = append(nodes, n.right)
+		}
+	}
+
+	return treeCopy
+}
+
 // Len returns the number of elements in the tree.
 func (root *RBTree) Len() int {
 	return root.count
@@ -264,6 +297,20 @@ type node struct {
 	item                Item
 	parent, left, right *node
 	color               int // black or red
+}
+
+func (n *node) copy() *node {
+	copyN := *n
+	if n.left != nil {
+		copyN.left = n.left.copy()
+		copyN.left.parent = &copyN
+	}
+	if n.right != nil {
+		copyN.right = n.right.copy()
+		copyN.right.parent = &copyN
+	}
+
+	return &copyN
 }
 
 var negativeLimitNode *node

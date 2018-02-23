@@ -40,16 +40,16 @@ func testPanicFile(t *testing.T, method func(*File), msg string) {
 }
 
 func TestBullshitFile(t *testing.T) {
-	testPanicFile(t, func(file *File) { file.Update(1, -10, 10, 0) }, "insert")
-	testPanicFile(t, func(file *File) { file.Update(1, 110, 10, 0) }, "insert")
-	testPanicFile(t, func(file *File) { file.Update(1, -10, 0, 10) }, "delete")
-	testPanicFile(t, func(file *File) { file.Update(1, 100, 0, 10) }, "delete")
-	testPanicFile(t, func(file *File) { file.Update(1, 0, -10, 0) }, "Length")
-	testPanicFile(t, func(file *File) { file.Update(1, 0, 0, -10) }, "Length")
-	testPanicFile(t, func(file *File) { file.Update(1, 0, -10, -10) }, "Length")
-	testPanicFile(t, func(file *File) { file.Update(-1, 0, 10, 10) }, "time")
+	testPanicFile(t, func(file *File) { file.Update(1, -10, 10, 0, false) }, "insert")
+	testPanicFile(t, func(file *File) { file.Update(1, 110, 10, 0, false) }, "insert")
+	testPanicFile(t, func(file *File) { file.Update(1, -10, 0, 10, false) }, "delete")
+	testPanicFile(t, func(file *File) { file.Update(1, 100, 0, 10, false) }, "delete")
+	testPanicFile(t, func(file *File) { file.Update(1, 0, -10, 0, false) }, "Length")
+	testPanicFile(t, func(file *File) { file.Update(1, 0, 0, -10, false) }, "Length")
+	testPanicFile(t, func(file *File) { file.Update(1, 0, -10, -10, false) }, "Length")
+	testPanicFile(t, func(file *File) { file.Update(-1, 0, 10, 10, false) }, "time")
 	file, status := fixtureFile()
-	file.Update(1, 10, 0, 0)
+	file.Update(1, 10, 0, 0, false)
 	assert.Equal(t, int64(100), status[0])
 	assert.Equal(t, int64(0), status[1])
 }
@@ -61,7 +61,7 @@ func TestLenFile(t *testing.T) {
 
 func TestInsertFile(t *testing.T) {
 	file, status := fixtureFile()
-	file.Update(1, 10, 10, 0)
+	file.Update(1, 10, 10, 0, false)
 	dump := file.Dump()
 	// Output:
 	// 0 0
@@ -81,7 +81,7 @@ func TestZeroInitializeFile(t *testing.T) {
 	// Output:
 	// 0 -1
 	assert.Equal(t, "0 -1\n", dump)
-	file.Update(1, 0, 10, 0)
+	file.Update(1, 0, 10, 0, false)
 	dump = file.Dump()
 	// Output:
 	// 0 1
@@ -92,7 +92,7 @@ func TestZeroInitializeFile(t *testing.T) {
 
 func TestDeleteFile(t *testing.T) {
 	file, status := fixtureFile()
-	file.Update(1, 10, 0, 10)
+	file.Update(1, 10, 0, 10, false)
 	dump := file.Dump()
 	// Output:
 	// 0 0
@@ -104,7 +104,7 @@ func TestDeleteFile(t *testing.T) {
 
 func TestFusedFile(t *testing.T) {
 	file, status := fixtureFile()
-	file.Update(1, 10, 6, 7)
+	file.Update(1, 10, 6, 7, false)
 	dump := file.Dump()
 	// Output:
 	// 0 0
@@ -118,7 +118,7 @@ func TestFusedFile(t *testing.T) {
 
 func TestInsertSameTimeFile(t *testing.T) {
 	file, status := fixtureFile()
-	file.Update(0, 5, 10, 0)
+	file.Update(0, 5, 10, 0, false)
 	dump := file.Dump()
 	// Output:
 	// 0 0
@@ -129,8 +129,8 @@ func TestInsertSameTimeFile(t *testing.T) {
 
 func TestInsertSameStartFile(t *testing.T) {
 	file, status := fixtureFile()
-	file.Update(1, 10, 10, 0)
-	file.Update(2, 10, 10, 0)
+	file.Update(1, 10, 10, 0, false)
+	file.Update(2, 10, 10, 0, false)
 	dump := file.Dump()
 	// Output:
 	// 0 0
@@ -146,7 +146,7 @@ func TestInsertSameStartFile(t *testing.T) {
 
 func TestInsertEndFile(t *testing.T) {
 	file, status := fixtureFile()
-	file.Update(1, 100, 10, 0)
+	file.Update(1, 100, 10, 0, false)
 	dump := file.Dump()
 	// Output:
 	// 0 0
@@ -159,7 +159,7 @@ func TestInsertEndFile(t *testing.T) {
 
 func TestDeleteSameStart0File(t *testing.T) {
 	file, status := fixtureFile()
-	file.Update(1, 0, 0, 10)
+	file.Update(1, 0, 0, 10, false)
 	dump := file.Dump()
 	// Output:
 	// 0 0
@@ -171,8 +171,8 @@ func TestDeleteSameStart0File(t *testing.T) {
 
 func TestDeleteSameStartMiddleFile(t *testing.T) {
 	file, status := fixtureFile()
-	file.Update(1, 10, 10, 0)
-	file.Update(2, 10, 0, 5)
+	file.Update(1, 10, 10, 0, false)
+	file.Update(2, 10, 0, 5, false)
 	dump := file.Dump()
 	// Output:
 	// 0 0
@@ -186,8 +186,8 @@ func TestDeleteSameStartMiddleFile(t *testing.T) {
 
 func TestDeleteIntersectionFile(t *testing.T) {
 	file, status := fixtureFile()
-	file.Update(1, 10, 10, 0)
-	file.Update(2, 15, 0, 10)
+	file.Update(1, 10, 10, 0, false)
+	file.Update(2, 15, 0, 10, false)
 	dump := file.Dump()
 	// Output:
 	// 0 0
@@ -201,7 +201,7 @@ func TestDeleteIntersectionFile(t *testing.T) {
 
 func TestDeleteAllFile(t *testing.T) {
 	file, status := fixtureFile()
-	file.Update(1, 0, 0, 100)
+	file.Update(1, 0, 0, 100, false)
 	// Output:
 	// 0 -1
 	dump := file.Dump()
@@ -212,8 +212,8 @@ func TestDeleteAllFile(t *testing.T) {
 
 func TestFusedIntersectionFile(t *testing.T) {
 	file, status := fixtureFile()
-	file.Update(1, 10, 10, 0)
-	file.Update(2, 15, 3, 10)
+	file.Update(1, 10, 10, 0, false)
+	file.Update(2, 15, 3, 10, false)
 	dump := file.Dump()
 	// Output:
 	// 0 0
@@ -230,21 +230,21 @@ func TestFusedIntersectionFile(t *testing.T) {
 func TestTortureFile(t *testing.T) {
 	file, status := fixtureFile()
 	// 0 0 | 100 -1                             [0]: 100
-	file.Update(1, 20, 30, 0)
+	file.Update(1, 20, 30, 0, false)
 	// 0 0 | 20 1 | 50 0 | 130 -1               [0]: 100, [1]: 30
-	file.Update(2, 20, 0, 5)
+	file.Update(2, 20, 0, 5, false)
 	// 0 0 | 20 1 | 45 0 | 125 -1               [0]: 100, [1]: 25
-	file.Update(3, 20, 0, 5)
+	file.Update(3, 20, 0, 5, false)
 	// 0 0 | 20 1 | 40 0 | 120 -1               [0]: 100, [1]: 20
-	file.Update(4, 20, 10, 0)
+	file.Update(4, 20, 10, 0, false)
 	// 0 0 | 20 4 | 30 1 | 50 0 | 130 -1        [0]: 100, [1]: 20, [4]: 10
-	file.Update(5, 45, 0, 10)
+	file.Update(5, 45, 0, 10, false)
 	// 0 0 | 20 4 | 30 1 | 45 0 | 120 -1        [0]: 95, [1]: 15, [4]: 10
-	file.Update(6, 45, 5, 0)
+	file.Update(6, 45, 5, 0, false)
 	// 0 0 | 20 4 | 30 1 | 45 6 | 50 0 | 125 -1 [0]: 95, [1]: 15, [4]: 10, [6]: 5
-	file.Update(7, 10, 0, 50)
+	file.Update(7, 10, 0, 50, false)
 	// 0 0 | 75 -1                              [0]: 75
-	file.Update(8, 0, 10, 10)
+	file.Update(8, 0, 10, 10, false)
 	// 0 8 | 10 0 | 75 -1                       [0]: 65, [8]: 10
 	dump := file.Dump()
 	assert.Equal(t, "0 8\n10 0\n75 -1\n", dump)
@@ -261,11 +261,11 @@ func TestTortureFile(t *testing.T) {
 
 func TestInsertDeleteSameTimeFile(t *testing.T) {
 	file, status := fixtureFile()
-	file.Update(0, 10, 10, 20)
+	file.Update(0, 10, 10, 20, false)
 	dump := file.Dump()
 	assert.Equal(t, "0 0\n90 -1\n", dump)
 	assert.Equal(t, int64(90), status[0])
-	file.Update(0, 10, 20, 10)
+	file.Update(0, 10, 20, 10, false)
 	dump = file.Dump()
 	assert.Equal(t, "0 0\n100 -1\n", dump)
 	assert.Equal(t, int64(100), status[0])
@@ -273,16 +273,16 @@ func TestInsertDeleteSameTimeFile(t *testing.T) {
 
 func TestBug1File(t *testing.T) {
 	file, status := fixtureFile()
-	file.Update(316, 1, 86, 0)
-	file.Update(316, 87, 0, 99)
-	file.Update(251, 0, 1, 0)
-	file.Update(251, 1, 0, 1)
+	file.Update(316, 1, 86, 0, false)
+	file.Update(316, 87, 0, 99, false)
+	file.Update(251, 0, 1, 0, false)
+	file.Update(251, 1, 0, 1, false)
 	dump := file.Dump()
 	assert.Equal(t, "0 251\n1 316\n87 -1\n", dump)
 	assert.Equal(t, int64(1), status[251])
 	assert.Equal(t, int64(86), status[316])
-	file.Update(316, 0, 0, 1)
-	file.Update(316, 0, 1, 0)
+	file.Update(316, 0, 0, 1, false)
+	file.Update(316, 0, 1, 0, false)
 	dump = file.Dump()
 	assert.Equal(t, "0 316\n87 -1\n", dump)
 	assert.Equal(t, int64(0), status[251])
@@ -291,13 +291,13 @@ func TestBug1File(t *testing.T) {
 
 func TestBug2File(t *testing.T) {
 	file, status := fixtureFile()
-	file.Update(316, 1, 86, 0)
-	file.Update(316, 87, 0, 99)
-	file.Update(251, 0, 1, 0)
-	file.Update(251, 1, 0, 1)
+	file.Update(316, 1, 86, 0, false)
+	file.Update(316, 87, 0, 99, false)
+	file.Update(251, 0, 1, 0, false)
+	file.Update(251, 1, 0, 1, false)
 	dump := file.Dump()
 	assert.Equal(t, "0 251\n1 316\n87 -1\n", dump)
-	file.Update(316, 0, 1, 1)
+	file.Update(316, 0, 1, 1, false)
 	dump = file.Dump()
 	assert.Equal(t, "0 316\n87 -1\n", dump)
 	assert.Equal(t, int64(0), status[251])
@@ -306,9 +306,9 @@ func TestBug2File(t *testing.T) {
 
 func TestJoinFile(t *testing.T) {
 	file, status := fixtureFile()
-	file.Update(1, 10, 10, 0)
-	file.Update(1, 30, 10, 0)
-	file.Update(1, 20, 10, 10)
+	file.Update(1, 10, 10, 0, false)
+	file.Update(1, 30, 10, 0, false)
+	file.Update(1, 20, 10, 10, false)
 	dump := file.Dump()
 	assert.Equal(t, "0 0\n10 1\n40 0\n120 -1\n", dump)
 	assert.Equal(t, int64(90), status[0])
@@ -317,8 +317,8 @@ func TestJoinFile(t *testing.T) {
 
 func TestBug3File(t *testing.T) {
 	file, status := fixtureFile()
-	file.Update(0, 1, 0, 99)
-	file.Update(0, 0, 1, 1)
+	file.Update(0, 1, 0, 99, false)
+	file.Update(0, 0, 1, 1, false)
 	dump := file.Dump()
 	assert.Equal(t, "0 0\n1 -1\n", dump)
 	assert.Equal(t, int64(1), status[0])
@@ -327,27 +327,27 @@ func TestBug3File(t *testing.T) {
 func TestBug4File(t *testing.T) {
 	status := map[int]int64{}
 	file := NewFile(0, 10, NewStatus(status, updateStatusFile))
-	file.Update(125, 0, 20, 9)
-	file.Update(125, 0, 20, 20)
-	file.Update(166, 12, 1, 1)
-	file.Update(214, 2, 1, 1)
-	file.Update(214, 4, 9, 0)
-	file.Update(214, 27, 1, 1)
-	file.Update(215, 3, 1, 1)
-	file.Update(215, 13, 1, 1)
-	file.Update(215, 17, 1, 1)
-	file.Update(215, 19, 5, 0)
-	file.Update(215, 25, 0, 1)
-	file.Update(215, 31, 6, 1)
-	file.Update(215, 27, 15, 0)
-	file.Update(215, 2, 25, 4)
-	file.Update(215, 28, 1, 1)
-	file.Update(215, 30, 7, 2)
-	file.Update(215, 38, 1, 0)
-	file.Update(215, 40, 4, 2)
-	file.Update(215, 46, 1, 0)
-	file.Update(215, 49, 1, 0)
-	file.Update(215, 52, 2, 6)
+	file.Update(125, 0, 20, 9, false)
+	file.Update(125, 0, 20, 20, false)
+	file.Update(166, 12, 1, 1, false)
+	file.Update(214, 2, 1, 1, false)
+	file.Update(214, 4, 9, 0, false)
+	file.Update(214, 27, 1, 1, false)
+	file.Update(215, 3, 1, 1, false)
+	file.Update(215, 13, 1, 1, false)
+	file.Update(215, 17, 1, 1, false)
+	file.Update(215, 19, 5, 0, false)
+	file.Update(215, 25, 0, 1, false)
+	file.Update(215, 31, 6, 1, false)
+	file.Update(215, 27, 15, 0, false)
+	file.Update(215, 2, 25, 4, false)
+	file.Update(215, 28, 1, 1, false)
+	file.Update(215, 30, 7, 2, false)
+	file.Update(215, 38, 1, 0, false)
+	file.Update(215, 40, 4, 2, false)
+	file.Update(215, 46, 1, 0, false)
+	file.Update(215, 49, 1, 0, false)
+	file.Update(215, 52, 2, 6, false)
 	dump := file.Dump()
 	assert.Equal(t, "0 125\n2 215\n48 125\n50 215\n69 125\n73 215\n79 125\n80 0\n81 -1\n", dump)
 }
@@ -357,14 +357,14 @@ func TestBug5File(t *testing.T) {
 	keys := []int{0, 2, 4, 7, 10}
 	vals := []int{24, 28, 24, 28, -1}
 	file := NewFileFromTree(keys, vals, NewStatus(status, updateStatusFile))
-	file.Update(28, 0, 1, 3)
+	file.Update(28, 0, 1, 3, false)
 	dump := file.Dump()
 	assert.Equal(t, "0 28\n2 24\n5 28\n8 -1\n", dump)
 
 	keys = []int{0, 1, 16, 18}
 	vals = []int{305, 0, 157, -1}
 	file = NewFileFromTree(keys, vals, NewStatus(status, updateStatusFile))
-	file.Update(310, 0, 0, 2)
+	file.Update(310, 0, 0, 2, false)
 	dump = file.Dump()
 	assert.Equal(t, "0 0\n14 157\n16 -1\n", dump)
 }
@@ -397,7 +397,7 @@ func TestUpdatePanic(t *testing.T) {
 		defer func() {
 			paniced = recover()
 		}()
-		file.Update(1, 0, 1, 0)
+		file.Update(1, 0, 1, 0, false)
 	}()
 	assert.Contains(t, paniced, "invalid tree state")
 }

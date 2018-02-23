@@ -12,7 +12,8 @@ import (
 // If "after" is nil, the change is a removal. Otherwise, it is a modification.
 // TreeDiff is a PipelineItem.
 type TreeDiff struct {
-	previousTree *object.Tree
+	// Repository points to the analysed Git repository struct from go-git.
+	repository *git.Repository
 }
 
 const (
@@ -51,7 +52,7 @@ func (treediff *TreeDiff) Configure(facts map[string]interface{}) {}
 // Initialize resets the temporary caches and prepares this PipelineItem for a series of Consume()
 // calls. The repository which is going to be analysed is supplied as an argument.
 func (treediff *TreeDiff) Initialize(repository *git.Repository) {
-	treediff.previousTree = nil
+	treediff.repository = repository
 }
 
 // Consume runs this PipelineItem on the next commit data.
@@ -65,13 +66,10 @@ func (treediff *TreeDiff) Consume(deps map[string]interface{}) (map[string]inter
 	if err != nil {
 		return nil, err
 	}
+
 	var diff object.Changes
-	if treediff.previousTree != nil {
-		diff, err = object.DiffTree(treediff.previousTree, tree)
-		if err != nil {
-			return nil, err
-		}
-	} else {
+	switch len(commit.ParentHashes) {
+	case 0:
 		diff = []*object.Change{}
 		err = func() error {
 			fileIter := tree.Files()
@@ -90,11 +88,33 @@ func (treediff *TreeDiff) Consume(deps map[string]interface{}) (map[string]inter
 			}
 			return nil
 		}()
+	case 1:
+		parent, err := treediff.repository.CommitObject(commit.ParentHashes[0])
+		if err != nil {
+			return nil, err
+		}
+		parentTree, err := parent.Tree()
+		if err != nil {
+			return nil, err
+		}
+		diff, err = object.DiffTree(parentTree, tree)
+		if err != nil {
+			return nil, err
+		}
+	case 2:
+		parent, err := treediff.repository.CommitObject(commit.ParentHashes[0])
+		if err != nil {
+			return nil, err
+		}
+		parentTree, err := parent.Tree()
+		if err != nil {
+			return nil, err
+		}
+		diff, err = object.DiffTree(parentTree, tree)
 		if err != nil {
 			return nil, err
 		}
 	}
-	treediff.previousTree = tree
 	return map[string]interface{}{DependencyTreeChanges: diff}, nil
 }
 

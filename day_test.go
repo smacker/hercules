@@ -43,7 +43,6 @@ func TestDaysSinceStartConsume(t *testing.T) {
 	res, err := dss.Consume(deps)
 	assert.Nil(t, err)
 	assert.Equal(t, res[DependencyDay].(int), 0)
-	assert.Equal(t, dss.previousDay, 0)
 	assert.Equal(t, dss.day0.Hour(), 1)   // 18 UTC+1
 	assert.Equal(t, dss.day0.Minute(), 0) // 30
 	assert.Equal(t, dss.day0.Second(), 0) // 29
@@ -55,7 +54,6 @@ func TestDaysSinceStartConsume(t *testing.T) {
 	res, err = dss.Consume(deps)
 	assert.Nil(t, err)
 	assert.Equal(t, res[DependencyDay].(int), 1)
-	assert.Equal(t, dss.previousDay, 1)
 
 	commit, _ = testRepository.CommitObject(plumbing.NewHash(
 		"a3ee37f91f0d705ec9c41ae88426f0ae44b2fbc3"))
@@ -64,7 +62,6 @@ func TestDaysSinceStartConsume(t *testing.T) {
 	res, err = dss.Consume(deps)
 	assert.Nil(t, err)
 	assert.Equal(t, res[DependencyDay].(int), 1)
-	assert.Equal(t, dss.previousDay, 1)
 
 	commit, _ = testRepository.CommitObject(plumbing.NewHash(
 		"a8b665a65d7aced63f5ba2ff6d9b71dac227f8cf"))
@@ -73,7 +70,6 @@ func TestDaysSinceStartConsume(t *testing.T) {
 	res, err = dss.Consume(deps)
 	assert.Nil(t, err)
 	assert.Equal(t, res[DependencyDay].(int), 2)
-	assert.Equal(t, dss.previousDay, 2)
 
 	commit, _ = testRepository.CommitObject(plumbing.NewHash(
 		"186ff0d7e4983637bb3762a24d6d0a658e7f4712"))
@@ -82,5 +78,4 @@ func TestDaysSinceStartConsume(t *testing.T) {
 	res, err = dss.Consume(deps)
 	assert.Nil(t, err)
 	assert.Equal(t, res[DependencyDay].(int), 2)
-	assert.Equal(t, dss.previousDay, 2)
 }

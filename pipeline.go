@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 	"time"
 
 	"gopkg.in/src-d/go-git.v4"
@@ -335,8 +336,13 @@ func (pipeline *Pipeline) Len() int {
 // from HEAD and traces commits backwards till the root. When it encounters
 // a merge (more than one parent), it always chooses the first parent.
 func (pipeline *Pipeline) Commits() []*object.Commit {
+	// maintain "seen" commits
+	seen := make(map[plumbing.Hash]bool)
+
 	result := []*object.Commit{}
 	repository := pipeline.repository
+
+	// main branch
 	head, err := repository.Head()
 	if err != nil {
 		panic(err)
@@ -345,18 +351,92 @@ func (pipeline *Pipeline) Commits() []*object.Commit {
 	if err != nil {
 		panic(err)
 	}
-	// the first parent matches the head
+
 	for ; err != io.EOF; commit, err = commit.Parents().Next() {
 		if err != nil {
 			panic(err)
 		}
 		result = append(result, commit)
+		seen[commit.Hash] = true
+	}
+
+	// reverse the order
+	for i, j := 0, len(result)-1; i < j; i, j = i+1, j-1 {
+		result[i], result[j] = result[j], result[i]
+	}
+
+	result = addMerges(repository, result, seen)
+
+	// TODO commits must be sorted by date as long as they don't depend on any younger commit
+	//
+	// need to create fixures for cases:
+	// 1 - when parent is younger than commit itself (for ex. go-git)
+	// 2 - when the first commit is is older than first merge commit (for ex. code-annotation)
+
+	return result
+}
+
+func removeSignedOffBy(msg string) string {
+	newLines := make([]string, 0)
+	lines := strings.Split(msg, "\n")
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" || strings.HasPrefix(line, "Signed-off-by") {
+			continue
+		}
+		newLines = append(newLines, line)
+	}
+	return strings.Join(newLines, "\n")
+}
+
+func addCommitsFromMerge(repository *git.Repository, commit *object.Commit, seen map[plumbing.Hash]bool) []*object.Commit {
+	result := []*object.Commit{}
+	if _, ok := seen[commit.Hash]; !ok {
+		result = append(result, commit)
+		seen[commit.Hash] = true
+	}
+	var err error
+	for ; err != io.EOF; commit, err = commit.Parents().Next() {
+		if err != nil {
+			panic(err)
+		}
+		_, ok := seen[commit.Hash]
+		if ok {
+			continue
+		}
+		result = append(result, commit)
+		seen[commit.Hash] = true
 	}
 	// reverse the order
 	for i, j := 0, len(result)-1; i < j; i, j = i+1, j-1 {
 		result[i], result[j] = result[j], result[i]
 	}
+
+	result = addMerges(repository, result, seen)
+
 	return result
+}
+
+func addMerges(repository *git.Repository, result []*object.Commit, seen map[plumbing.Hash]bool) []*object.Commit {
+	var newCommits []*object.Commit
+	// travel commits again and look for merge commits
+	for _, c := range result {
+		if len(c.ParentHashes) < 2 {
+			newCommits = append(newCommits, c)
+			continue
+		}
+		if len(c.ParentHashes) > 2 {
+			panic("is it possible?")
+		}
+		commit, err := repository.CommitObject(c.ParentHashes[1])
+		if err != nil {
+			panic(err)
+		}
+		commitsFromMerge := addCommitsFromMerge(repository, commit, seen)
+		newCommits = append(newCommits, commitsFromMerge...)
+		newCommits = append(newCommits, c)
+	}
+	return newCommits
 }
 
 type sortablePipelineItems []PipelineItem
@@ -535,9 +615,16 @@ func (pipeline *Pipeline) Run(commits []*object.Commit) (map[LeafPipelineItem]in
 		onProgress = func(int, int) {}
 	}
 
+	deps := make(map[plumbing.Hash]int)
+	for _, c := range commits {
+		for _, h := range c.ParentHashes {
+			deps[h]++
+		}
+	}
+
 	for index, commit := range commits {
 		onProgress(index, len(commits))
-		state := map[string]interface{}{"commit": commit, "index": index}
+		state := map[string]interface{}{"commit": commit, "index": index, "commitDeps": deps}
 		for _, item := range pipeline.items {
 			update, err := item.Consume(state)
 			if err != nil {

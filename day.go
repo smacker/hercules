@@ -10,8 +10,7 @@ import (
 // DaysSinceStart provides the relative date information for every commit.
 // It is a PipelineItem.
 type DaysSinceStart struct {
-	day0        time.Time
-	previousDay int
+	day0 time.Time
 }
 
 const (
@@ -52,7 +51,6 @@ func (days *DaysSinceStart) Configure(facts map[string]interface{}) {}
 // calls. The repository which is going to be analysed is supplied as an argument.
 func (days *DaysSinceStart) Initialize(repository *git.Repository) {
 	days.day0 = time.Time{}
-	days.previousDay = 0
 }
 
 // Consume runs this PipelineItem on the next commit data.
@@ -69,12 +67,8 @@ func (days *DaysSinceStart) Consume(deps map[string]interface{}) (map[string]int
 		// our precision is 1 day
 		days.day0 = days.day0.Truncate(24 * time.Hour)
 	}
+
 	day := int(commit.Author.When.Sub(days.day0).Hours() / 24)
-	if day < days.previousDay {
-		// rebase works miracles, but we need the monotonous time
-		day = days.previousDay
-	}
-	days.previousDay = day
 	return map[string]interface{}{DependencyDay: day}, nil
 }
 

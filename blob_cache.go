@@ -1,6 +1,7 @@
 package hercules
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
@@ -8,6 +9,8 @@ import (
 	"gopkg.in/src-d/go-git.v4/config"
 	"gopkg.in/src-d/go-git.v4/plumbing"
 	"gopkg.in/src-d/go-git.v4/plumbing/object"
+	"gopkg.in/src-d/go-git.v4/utils/binary"
+	"gopkg.in/src-d/go-git.v4/utils/ioutil"
 	"gopkg.in/src-d/go-git.v4/utils/merkletrie"
 )
 
@@ -191,4 +194,18 @@ func (blobCache *BlobCache) getBlob(entry *object.ChangeEntry, fileGetter FileGe
 
 func init() {
 	Registry.Register(&BlobCache{})
+}
+
+func isBinary(file *object.Blob) (bool, error) {
+	if file == nil {
+		return false, errors.New("blob is nil: probably not cached")
+	}
+
+	reader, err := file.Reader()
+	if err != nil {
+		return false, err
+	}
+	defer ioutil.CheckClose(reader, &err)
+
+	return binary.IsBinary(reader)
 }

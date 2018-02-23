@@ -46,9 +46,8 @@ func TestTreeDiffConsume(t *testing.T) {
 		"2b1ed978194a94edeabbca6de7ff3b5771d4d665"))
 	deps := map[string]interface{}{}
 	deps["commit"] = commit
-	prevCommit, _ := testRepository.CommitObject(plumbing.NewHash(
-		"fbe766ffdc3f87f6affddc051c6f8b419beea6a2"))
-	td.previousTree, _ = prevCommit.Tree()
+	//prevCommit, _ := testRepository.CommitObject(plumbing.NewHash("fbe766ffdc3f87f6affddc051c6f8b419beea6a2"))
+	//td.previousTree, _ = prevCommit.Tree()
 	res, err := td.Consume(deps)
 	assert.Nil(t, err)
 	assert.Equal(t, len(res), 1)

@@ -2,6 +2,7 @@ package hercules
 
 import (
 	"fmt"
+
 	"gopkg.in/src-d/hercules.v3/rbtree"
 )
 
@@ -25,6 +26,12 @@ type Status struct {
 type File struct {
 	tree     *rbtree.RBTree
 	statuses []Status
+}
+
+func (f *File) Copy() *File {
+	fileCopy := *f
+	fileCopy.tree = f.tree.Copy()
+	return &fileCopy
 }
 
 // NewStatus initializes a new instance of Status struct. It is needed to set the only two
@@ -148,7 +155,7 @@ func (file *File) Len() int {
 // The code inside this function is probably the most important one throughout
 // the project. It is extensively covered with tests. If you find a bug, please
 // add the corresponding case in file_test.go.
-func (file *File) Update(time int, pos int, insLength int, delLength int) {
+func (file *File) Update(time int, pos int, insLength int, delLength int, skipUpdate bool) {
 	if time < 0 {
 		panic("time may not be negative")
 	}
@@ -171,7 +178,9 @@ func (file *File) Update(time int, pos int, insLength int, delLength int) {
 	}
 	iter := tree.FindLE(pos)
 	origin := *iter.Item()
-	file.updateTime(time, time, insLength)
+	if !skipUpdate {
+		file.updateTime(time, time, insLength)
+	}
 	if delLength == 0 {
 		// simple case with insertions only
 		if origin.Key < pos || (origin.Value == time && pos == 0) {
@@ -203,7 +212,9 @@ func (file *File) Update(time int, pos int, insLength int, delLength int) {
 		if delta <= 0 {
 			break
 		}
-		file.updateTime(time, node.Value, -delta)
+		if !skipUpdate {
+			file.updateTime(time, node.Value, -delta)
+		}
 		if node.Key >= pos {
 			origin = *node
 			tree.DeleteWithIterator(iter)
